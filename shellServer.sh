@@ -7,16 +7,9 @@ normalizePath() {
     TARGET_FILE=$1
 
     # 対象ファイルのディレクトリまで移動
-    # 一文字目に/があれば/を消したい　でも/index.htmlの場合は消したくない
-    if [[ ${TARGET_FILE:0:1} = / ]]; then
-        #echo "Hit"
-        TARGET_FILE=${TARGET_FILE#*/}
-        #echo ${TARGET_FILE}
-    fi
-
-#    currentDir=$(pwd)
-#
-#    echo ${currentDir}
+    # ファイル探索の際に余計についているため
+    set -x
+    TARGET_FILE=${TARGET_FILE#*/}
 
     # 対象ファイルのディレクトリ名を取得
     cd `dirname "public/"${TARGET_FILE}`
@@ -32,9 +25,10 @@ normalizePath() {
         TARGET_FILE=`basename ${TARGET_FILE}`
     done
 
-    PHYS_DIR=`pwd -P`
+    PHYS_DIR=`pwd -P`"/public"
     RESULT=${PHYS_DIR}/${TARGET_FILE}
     echo ${RESULT}
+    set +x
 }
 
 setting404Response() {
@@ -75,15 +69,12 @@ createHttpResponse() {
     set -- ${1}
 
     absolutePath=$(cd $(dirname $0)/public; pwd)
-
-    set -x
     requestPath=$(normalizePath "${2}")
 
     if [[ ! ${requestPath} =~ ${absolutePath} ]]; then
         setting403Response
         return;
     fi
-    set +x
 
     fileName="public/${2#/}"
 
