@@ -4,28 +4,25 @@ IFS=" "
 CRLF="\r\n"
 
 normalizePath() {
-    TARGET_FILE=$1
+    # 見せたいファイルは/publicを起点としたところのみであるため
+    TARGET_FILE="./public${1}"
 
-    # 対象ファイルのディレクトリまで移動
-    # ファイル探索の際に余計についているため
     set -x
-    TARGET_FILE=${TARGET_FILE#*/}
-
     # 対象ファイルのディレクトリ名を取得
-    cd `dirname "public/"${TARGET_FILE}`
+    cd $(dirname ${TARGET_FILE})
 
     # 対象ファイルのファイル名を取得
-    TARGET_FILE=${TARGET_FILE##*/}
+    TARGET_FILE=$(basename ${TARGET_FILE})
 
     # シンボリックリンクでないかを確認
     while [ -L "${TARGET_FILE}" ]
     do
-        TARGET_FILE=`readlink ${TARGET_FILE}`
-        cd `dirname ${TARGET_FILE}`
-        TARGET_FILE=`basename ${TARGET_FILE}`
+        TARGET_FILE=$(readlink ${TARGET_FILE})
+        cd $(dirname ${TARGET_FILE})
+        TARGET_FILE=$(basename ${TARGET_FILE})
     done
 
-    PHYS_DIR=`pwd -P`"/public"
+    PHYS_DIR=$(pwd -P)
     RESULT=${PHYS_DIR}/${TARGET_FILE}
     echo ${RESULT}
     set +x
@@ -55,7 +52,7 @@ setting200Response() {
     messageBody=$(cat "${1}")
 }
 
-showFileList() {
+createFileList() {
     files="${1}/*"
     fileList="<h1>Index of /"${1#*/}"</h1>\n <ul>"
     for file in ${files}; do
@@ -71,27 +68,26 @@ createHttpResponse() {
     absolutePath=$(cd $(dirname $0)/public; pwd)
     requestPath=$(normalizePath "${2}")
 
-    if [[ ! ${requestPath} =~ ${absolutePath} ]]; then
+    if [[ ! "${requestPath}" =~ "${absolutePath}" ]]; then
         setting403Response
         return;
     fi
 
-    fileName="public/${2#/}"
-
+    fileName="${requestPath}"
     # 拡張子がなければディレクトリとして読み込む
         #　以下にindex.htmlがあればそれを返す
         #　なければその中のファイルをリストとして返す
         #　ディレクトリ自体なければ404
     if [[ -z $(echo "${fileName}" | grep '\.') ]]; then
-        if [[ -e "${fileName}index.html" ]]; then
-            setting200Response "${fileName}index.html"
+        if [[ -e "${fileName}/index.html" ]]; then
+            setting200Response "${fileName}/index.html"
             return;
         elif [[ -d "${fileName}" ]]; then
-            showFileList "${fileName}"
+            createFileList "${fileName}"
             httpStatus="HTTP/1.1 200 OK"${CRLF}
             httpDate="Date: $(LANG=en_US.UTF-8 date -uR "+%a, %d %b %Y %T GMT")"${CRLF}
             contentType="Content-Type: text/html;charset=utf-8"${CRLF}
-            #contentLength="Content-Length: $(wc -c "${messageBody}" | awk '{print $1}')"${CRLF}
+            contentLength="Content-Length: $(wc -c "${messageBody}" | awk '{print $1}')"${CRLF}
         else
             setting404Response
             return;
