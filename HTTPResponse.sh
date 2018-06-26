@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 source NormalizePath.sh
+source Constant.sh
+source ResponseCollection.sh
 
 createFileList() {
     local _files="${1}/*"
